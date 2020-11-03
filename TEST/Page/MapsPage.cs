@@ -15,14 +15,78 @@ namespace TEST.Page
     {
         private IWebDriver driver;
         private WebDriverWait wait;
-        Int32 timeout = 5000;
+        Int32 timeout = 30000;
         private IWebElement travelModeOnFootButton;
         private IWebElement travelModeByBicycleButton;
+
+        private By cookiesConsentFrame = By.CssSelector(".widget-consent-frame");
+        private By cookiesConsentButton = By.CssSelector("#introAgreeButton > span > span");
+        private By cookiesConsentWidget = By.ClassName("widget-consent-fullscreen");
+        private By routeButton = By.Id("searchbox-directions");
+        private By routeStartingPointField = By.CssSelector("#sb_ifc51 > input");
+        private By routeDestinationtField = By.CssSelector("#sb_ifc52 > input");
+        private By onFootRouteModeButton = By.CssSelector("div[data-travel_mode='2'] > button > img");
+        private By byBikeRouteModeButton = By.CssSelector("div[data-travel_mode='1'] > button > img");
+        private By routeSearchFirstResult = By.Id("section-directions-trip-0");
+        private By routeSearchFirstResultDuration = By.CssSelector(".section-directions-trip-duration");
+        private By routeSearchFirstResultDistance = By.CssSelector(".section-directions-trip-distance");
 
         public MapsPage(IWebDriver driver)
         {
             this.driver = driver;
             wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeout));
+        }
+
+        public void Open()
+        {
+            driver.Navigate().GoToUrl("https://www.google.pl/maps/");
+        }
+
+        public void AgreeToCookies()
+        {
+            IWebElement consentFrame = wait.Until(ExpectedConditions.ElementIsVisible(cookiesConsentFrame));
+            driver.SwitchTo().Frame(consentFrame);
+            wait.Until(ExpectedConditions.ElementIsVisible(cookiesConsentButton)).Click();
+            driver.SwitchTo().DefaultContent();
+            wait.Until(ExpectedConditions.InvisibilityOfElementLocated(cookiesConsentWidget));            
+        }
+
+        public void GetFasestRoute(string startingPoint, string destination, string travelMode = "pieszo")
+        {
+            driver.FindElement(routeButton).Click();
+            IWebElement routeStartingPointFieldElement = wait.Until(ExpectedConditions.ElementIsVisible(routeStartingPointField));
+            routeStartingPointFieldElement.Clear();
+            routeStartingPointFieldElement.SendKeys(startingPoint);
+            driver.FindElement(routeDestinationtField).SendKeys(destination);
+
+            switch (travelMode)
+            {
+                case "na rowerze":
+                    driver.FindElement(byBikeRouteModeButton).Click();
+                    break;
+                default:
+                    driver.FindElement(onFootRouteModeButton).Click();
+                    break;
+            }
+
+            wait.Until(ExpectedConditions.ElementIsVisible(routeSearchFirstResult));
+        }
+
+        public int GetFastestRouteDuration()
+        {
+            string firstResultDuration = driver.FindElement(routeSearchFirstResultDuration).Text;
+            return int.Parse(firstResultDuration.Remove(firstResultDuration.IndexOf(" ")));
+        }
+
+        public Double GetFastestRouteDistance()
+        {
+            //string firstResultDistance = driver.FindElement(routeSearchFirstResultDistance).Text.Replace(",", ".");
+            string firstResultDistance = driver.FindElement(routeSearchFirstResultDistance).Text;
+            //firstResultDistance = firstResultDistance.Remove(firstResultDistance.IndexOf(" "));
+            //Double dist = Double.Parse(firstResultDistance);
+            return float.Parse(firstResultDistance.Remove(firstResultDistance.IndexOf(" ")));
+
+            //return float.Parse(firstResultDistance.Remove(firstResultDistance.IndexOf(" ")));
         }
 
         public void PerformPreparation(string from, string destination)
@@ -36,7 +100,7 @@ namespace TEST.Page
             IWebElement routeButton = driver.FindElement(By.XPath("//*[@id=\"searchbox-directions\"]"));
             routeButton.Click();
 
-            wait.Until(ExpectedConditions.ElementIsVisible(By.XPath("//*[@id=\"sb_ifc51\"]/input")));
+            wait.Until(ExpectedConditions.ElementIsVisible(By.XPath("//*[@id='sb_ifc51']/input")));
             IWebElement inputFrom = driver.FindElement(By.XPath("//*[@id=\"sb_ifc51\"]/input"));
             inputFrom.Clear();
             inputFrom.SendKeys(from);
